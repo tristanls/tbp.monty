@@ -449,6 +449,10 @@ class InformedEnvironmentDataLoader(EnvironmentDataLoaderPerObject):
         This is a temporary feature flag to allow for testing the GetGoodView
         positioning procedure.
         """
+        logging.warning(
+            "action: use_get_good_view_positioning_procedure: "
+            f"{self._use_get_good_view_positioning_procedure}"
+        )
 
     def __iter__(self):
         # Overwrite original because we don't want to reset agent at this stage
@@ -591,50 +595,80 @@ class InformedEnvironmentDataLoader(EnvironmentDataLoaderPerObject):
         TODO M : move most of this to the motor systems, shouldn't be in embodied_data
             class
         """
-        if self._use_get_good_view_positioning_procedure:
-            _configured_policy = self.motor_system._policy
+        # if self._use_get_good_view_positioning_procedure:
+        #     _configured_policy = self.motor_system._policy
 
-            self.motor_system._policy = GetGoodView(
-                agent_id=self.motor_system._policy.agent_id,
-                desired_object_distance=_configured_policy.desired_object_distance,
-                good_view_percentage=_configured_policy.good_view_percentage,
-                multiple_objects_present=self.num_distractors > 0,
-                sensor_id=sensor_id,
-                target_semantic_id=self.primary_target["semantic_id"],
-                allow_translation=allow_translation,
-                max_orientation_attempts=max_orientation_attempts,
-                # TODO: Remaining arguments are unused but required by BasePolicy.
-                #       These will be removed when PositioningProcedure is split from
-                #       BasePolicy
-                #
-                # Note that if we use rng=self.rng below, then the following test will
-                # fail:
-                #   tests/unit/evidence_lm_test.py::EvidenceLMTest::test_two_lm_heterarchy_experiment  # noqa: E501
-                # The test result seems to be coupled to the random seed and the
-                # specific sequence of rng calls (rng is called once on GetGoodView
-                # initialization).
-                rng=np.random.RandomState(),
-                action_sampler_args=dict(actions=[LookUp]),
-                action_sampler_class=UniformlyDistributedSampler,
-                switch_frequency=0.0,
-            )
-            result = self.motor_system._policy.positioning_call(
-                self._observation, self.motor_system._state
-            )
-            while not result.terminated and not result.truncated:
-                for action in result.actions:
-                    self._observation, proprio_state = self.dataset[action]
-                    self.motor_system._state = (
-                        MotorSystemState(proprio_state) if proprio_state else None
-                    )
+        #     self.motor_system._policy = GetGoodView(
+        #         agent_id=self.motor_system._policy.agent_id,
+        #         desired_object_distance=_configured_policy.desired_object_distance,
+        #         good_view_percentage=_configured_policy.good_view_percentage,
+        #         multiple_objects_present=self.num_distractors > 0,
+        #         sensor_id=sensor_id,
+        #         target_semantic_id=self.primary_target["semantic_id"],
+        #         allow_translation=allow_translation,
+        #         max_orientation_attempts=max_orientation_attempts,
+        #         # TODO: Remaining arguments are unused but required by BasePolicy.
+        #         #       These will be removed when PositioningProcedure is split from
+        #         #       BasePolicy
+        #         #
+        #         # Note that if we use rng=self.rng below, then the following test will
+        #         # fail:
+        #         #   tests/unit/evidence_lm_test.py::EvidenceLMTest::test_two_lm_heterarchy_experiment  # noqa: E501
+        #         # The test result seems to be coupled to the random seed and the
+        #         # specific sequence of rng calls (rng is called once on GetGoodView
+        #         # initialization).
+        #         rng=np.random.RandomState(),
+        #         action_sampler_args=dict(actions=[LookUp]),
+        #         action_sampler_class=UniformlyDistributedSampler,
+        #         switch_frequency=0.0,
+        #     )
+        #     result = self.motor_system._policy.positioning_call(
+        #         self._observation, self.motor_system._state
+        #     )
+        #     while not result.terminated and not result.truncated:
+        #         for action in result.actions:
+        #             logging.warning(f"action: {action.name} {action.__dict__}")
+        #             self._observation, proprio_state = self.dataset[action]
+        #             self.motor_system._state = (
+        #                 MotorSystemState(proprio_state) if proprio_state else None
+        #             )
 
-                result = self.motor_system._policy.positioning_call(
-                    self._observation, self.motor_system._state
-                )
+        #         result = self.motor_system._policy.positioning_call(
+        #             self._observation, self.motor_system._state
+        #         )
 
-            self.motor_system._policy = _configured_policy
+        #     self.motor_system._policy = _configured_policy
 
-            return result.success
+        #     return result.success
+
+        default_code_path_state = self.motor_system._state
+        default_code_path_policy = self.motor_system._policy
+
+        new_code_path_state = self.motor_system._state
+        new_code_path_policy = GetGoodView(
+            agent_id=self.motor_system._policy.agent_id,
+            desired_object_distance=default_code_path_policy.desired_object_distance,
+            good_view_percentage=default_code_path_policy.good_view_percentage,
+            multiple_objects_present=self.num_distractors > 0,
+            sensor_id=sensor_id,
+            target_semantic_id=self.primary_target["semantic_id"],
+            allow_translation=allow_translation,
+            max_orientation_attempts=max_orientation_attempts,
+            # TODO: Remaining arguments are unused but required by BasePolicy.
+            #       These will be removed when PositioningProcedure is split from
+            #       BasePolicy
+            #
+            # Note that if we use rng=self.rng below, then the following test will
+            # fail:
+            #   tests/unit/evidence_lm_test.py::EvidenceLMTest::test_two_lm_heterarchy_experiment  # noqa: E501
+            # The test result seems to be coupled to the random seed and the
+            # specific sequence of rng calls (rng is called once on GetGoodView
+            # initialization).
+            rng=np.random.RandomState(),
+            action_sampler_args=dict(actions=[LookUp]),
+            action_sampler_class=UniformlyDistributedSampler,
+            switch_frequency=0.0,
+        )
 
         # TODO break up this method so that there is less code duplication
         # Start by ensuring the center of the patch is covering the primary target
@@ -655,11 +689,39 @@ class InformedEnvironmentDataLoader(EnvironmentDataLoaderPerObject):
                     multiple_objects_present=multiple_objects_present,
                     state=self.motor_system._state,
                 )
+                # Invoke the new code path start
+                default_code_path_state = self.motor_system._state
+                self.motor_system._state = new_code_path_state
+                self.motor_system._policy = new_code_path_policy
+                result = self.motor_system._policy.positioning_call(
+                    self._observation, self.motor_system._state
+                )
+                new_code_path_state = self.motor_system._state
+                self.motor_system._state = default_code_path_state
+                self.motor_system._policy = default_code_path_policy
+                # Invoke the new code path end
+                # Assert that the actions are the same start
+                if len(result.actions) != len(actions):
+                    breakpoint()
+                for action, new_action in zip(actions, result.actions):
+                    if action.name != new_action.name:
+                        breakpoint()
+                    if action.__dict__ != new_action.__dict__:
+                        breakpoint()
+                # Assert that the actions are the same end
+                if self._use_get_good_view_positioning_procedure:
+                    actions = result.actions
+                if actions:
+                    logging.warning(f"action: multiple objects orient_to_object")
                 for action in actions:
+                    logging.warning(f"action: {action.name} {action.__dict__}")
                     self._observation, proprio_state = self.dataset[action]
                     self.motor_system._state = (
                         MotorSystemState(proprio_state) if proprio_state else None
                     )
+                # Update state for both code paths
+                default_code_path_state = self.motor_system._state
+                new_code_path_state = self.motor_system._state
 
         if allow_translation:
             # Move closer to the object, if not already close enough
@@ -669,19 +731,76 @@ class InformedEnvironmentDataLoader(EnvironmentDataLoaderPerObject):
                 target_semantic_id=self.primary_target["semantic_id"],
                 multiple_objects_present=multiple_objects_present,
             )
+            # Invoke the new code path start
+            default_code_path_state = self.motor_system._state
+            self.motor_system._state = new_code_path_state
+            self.motor_system._policy = new_code_path_policy
+            result = self.motor_system._policy.positioning_call(
+                self._observation, self.motor_system._state
+            )
+            new_code_path_state = self.motor_system._state
+            self.motor_system._state = default_code_path_state
+            self.motor_system._policy = default_code_path_policy
+            # Invoke the new code path end
+            # Assert that the actions are the same start
+            if action is None:
+                if len(result.actions) != 0:
+                    breakpoint()
+            else:
+                if len(result.actions) != 1:
+                    breakpoint()
+                if result.actions[0].name != action.name:
+                    breakpoint()
+                if result.actions[0].__dict__ != action.__dict__:
+                    breakpoint()
+            # Assert that the actions are the same end
             # Continue moving to a close distance to the object
             while not close_enough:
+                if self._use_get_good_view_positioning_procedure:
+                    action = result.actions[0]
                 logging.debug("moving closer!")
+                logging.warning(f"action: allow_translation move_close_enough")
+                logging.warning(f"action: {action.name} {action.__dict__}")
                 self._observation, proprio_state = self.dataset[action]
                 self.motor_system._state = (
                     MotorSystemState(proprio_state) if proprio_state else None
                 )
+                # Update state for both code paths
+                default_code_path_state = self.motor_system._state
+                new_code_path_state = self.motor_system._state
                 action, close_enough = self.motor_system._policy.move_close_enough(
                     self._observation,
                     sensor_id,
                     target_semantic_id=self.primary_target["semantic_id"],
                     multiple_objects_present=multiple_objects_present,
                 )
+                # Only retrieve new code path if we are not close enough
+                # Otherwise, new code path returns actions to orient to object
+                if not close_enough:
+                    # Invoke the new code path start
+                    default_code_path_state = self.motor_system._state
+                    self.motor_system._state = new_code_path_state
+                    self.motor_system._policy = new_code_path_policy
+                    result = self.motor_system._policy.positioning_call(
+                        self._observation, self.motor_system._state
+                    )
+                    new_code_path_state = self.motor_system._state
+                    self.motor_system._state = default_code_path_state
+                    self.motor_system._policy = default_code_path_policy
+                    # Invoke the new code path end
+                    # Assert that the actions are the same start
+                    if action is None:
+                        if len(result.actions) != 0:
+                            breakpoint()
+                    else:
+                        if len(result.actions) != 1:
+                            breakpoint()
+                        if result.actions[0].name != action.name:
+                            breakpoint()
+                        if result.actions[0].__dict__ != action.__dict__:
+                            breakpoint()
+                    sentinel = True  # sentinel for breakpoint to go to this line
+                    # Assert that the actions are the same end
 
         on_target_object = self.motor_system._policy.is_on_target_object(
             self._observation,
@@ -698,11 +817,39 @@ class InformedEnvironmentDataLoader(EnvironmentDataLoaderPerObject):
                 multiple_objects_present=multiple_objects_present,
                 state=self.motor_system._state,
             )
+            # Invoke the new code path start
+            default_code_path_state = self.motor_system._state
+            self.motor_system._state = new_code_path_state
+            self.motor_system._policy = new_code_path_policy
+            result = self.motor_system._policy.positioning_call(
+                self._observation, self.motor_system._state
+            )
+            new_code_path_state = self.motor_system._state
+            self.motor_system._state = default_code_path_state
+            self.motor_system._policy = default_code_path_policy
+            # Invoke the new code path end
+            # Assert that the actions are the same start
+            if len(result.actions) != len(actions):
+                breakpoint()
+            for action, new_action in zip(actions, result.actions):
+                if action.name != new_action.name:
+                    breakpoint()
+                if action.__dict__ != new_action.__dict__:
+                    breakpoint()
+            # Assert that the actions are the same end
+            if self._use_get_good_view_positioning_procedure:
+                actions = result.actions
+            if actions:
+                logging.warning(f"action: orient_to_object")
             for action in actions:
+                logging.warning(f"action: {action.name} {action.__dict__}")
                 self._observation, proprio_state = self.dataset[action]
                 self.motor_system._state = (
                     MotorSystemState(proprio_state) if proprio_state else None
                 )
+            # Update state for both code paths
+            default_code_path_state = self.motor_system._state
+            new_code_path_state = self.motor_system._state
             on_target_object = self.motor_system._policy.is_on_target_object(
                 self._observation,
                 sensor_id,

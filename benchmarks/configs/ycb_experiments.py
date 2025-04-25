@@ -43,6 +43,7 @@ from tbp.monty.frameworks.config_utils.make_dataset_configs import (
     EnvironmentDataloaderPerObjectArgs,
     EvalExperimentArgs,
     ExperimentArgs,
+    InformedEnvironmentDataLoaderPerObjectArgs,
     PredefinedObjectInitializer,
     RandomRotationObjectInitializer,
     get_object_names_by_idx,
@@ -252,7 +253,7 @@ base_config_10distinctobj_dist_agent = dict(
     logging_config=ParallelEvidenceLMLoggingConfig(
         wandb_group="benchmark_experiments",
         # Comment in for quick debugging (turns of wandb and increases logging)
-        # wandb_handlers=[],
+        wandb_handlers=[],
         # python_log_level="DEBUG",
     ),
     monty_config=PatchAndViewSOTAMontyConfig(
@@ -262,9 +263,10 @@ base_config_10distinctobj_dist_agent = dict(
     dataset_class=ED.EnvironmentDataset,
     dataset_args=PatchViewFinderMountHabitatDatasetArgs(),
     eval_dataloader_class=ED.InformedEnvironmentDataLoader,
-    eval_dataloader_args=EnvironmentDataloaderPerObjectArgs(
+    eval_dataloader_args=InformedEnvironmentDataLoaderPerObjectArgs(
         object_names=get_object_names_by_idx(0, 10, object_list=DISTINCT_OBJECTS),
         object_init_sampler=PredefinedObjectInitializer(rotations=test_rotations_all),
+        use_get_good_view_positioning_procedure=False,
     ),
 )
 

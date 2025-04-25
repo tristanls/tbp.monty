@@ -719,6 +719,7 @@ class GetGoodView(PositioningProcedure):
             self._executed_multiple_objects_orientation = True
             on_target_object = self.is_on_target_object(observation)
             if not on_target_object:
+                logging.warning(f"action:pp: multiple objects orient_to_object")
                 return PositioningProcedureResult(
                     actions=self.orient_to_object(observation, state)
                 )
@@ -727,6 +728,7 @@ class GetGoodView(PositioningProcedure):
             action = self.move_close_enough(observation)
             if action is not None:
                 logging.debug("Moving closer to object.")
+                logging.warning(f"action:pp: allow_translation move_close_enough")
                 return PositioningProcedureResult(actions=[action])
 
         on_target_object = self.is_on_target_object(observation)
@@ -735,6 +737,7 @@ class GetGoodView(PositioningProcedure):
             and self._num_orientation_attempts < self._max_orientation_attempts
         ):
             self._num_orientation_attempts += 1
+            logging.warning(f"action:pp: orient_to_object")
             return PositioningProcedureResult(
                 actions=self.orient_to_object(observation, state)
             )
