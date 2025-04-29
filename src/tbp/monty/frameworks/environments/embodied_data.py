@@ -641,11 +641,9 @@ class InformedEnvironmentDataLoader(EnvironmentDataLoaderPerObject):
 
         #     return result.success
 
-        default_code_path_state = self.motor_system._state
         default_code_path_policy = self.motor_system._policy
 
-        new_code_path_state = self.motor_system._state
-        new_code_path_policy = GetGoodView(
+        positioning_procedure = GetGoodView(
             agent_id=self.motor_system._policy.agent_id,
             desired_object_distance=default_code_path_policy.desired_object_distance,
             good_view_percentage=default_code_path_policy.good_view_percentage,
@@ -689,17 +687,9 @@ class InformedEnvironmentDataLoader(EnvironmentDataLoaderPerObject):
                     multiple_objects_present=multiple_objects_present,
                     state=self.motor_system._state,
                 )
-                # Invoke the new code path start
-                default_code_path_state = self.motor_system._state
-                self.motor_system._state = new_code_path_state
-                self.motor_system._policy = new_code_path_policy
-                result = self.motor_system._policy.positioning_call(
+                result = positioning_procedure.positioning_call(
                     self._observation, self.motor_system._state
                 )
-                new_code_path_state = self.motor_system._state
-                self.motor_system._state = default_code_path_state
-                self.motor_system._policy = default_code_path_policy
-                # Invoke the new code path end
                 # Assert that the actions are the same start
                 if len(result.actions) != len(actions):
                     breakpoint()
@@ -719,9 +709,6 @@ class InformedEnvironmentDataLoader(EnvironmentDataLoaderPerObject):
                     self.motor_system._state = (
                         MotorSystemState(proprio_state) if proprio_state else None
                     )
-                # Update state for both code paths
-                default_code_path_state = self.motor_system._state
-                new_code_path_state = self.motor_system._state
 
         if allow_translation:
             # Move closer to the object, if not already close enough
@@ -731,17 +718,9 @@ class InformedEnvironmentDataLoader(EnvironmentDataLoaderPerObject):
                 target_semantic_id=self.primary_target["semantic_id"],
                 multiple_objects_present=multiple_objects_present,
             )
-            # Invoke the new code path start
-            default_code_path_state = self.motor_system._state
-            self.motor_system._state = new_code_path_state
-            self.motor_system._policy = new_code_path_policy
-            result = self.motor_system._policy.positioning_call(
+            result = positioning_procedure.positioning_call(
                 self._observation, self.motor_system._state
             )
-            new_code_path_state = self.motor_system._state
-            self.motor_system._state = default_code_path_state
-            self.motor_system._policy = default_code_path_policy
-            # Invoke the new code path end
             # Assert that the actions are the same start
             if action is None:
                 if len(result.actions) != 0:
@@ -765,9 +744,6 @@ class InformedEnvironmentDataLoader(EnvironmentDataLoaderPerObject):
                 self.motor_system._state = (
                     MotorSystemState(proprio_state) if proprio_state else None
                 )
-                # Update state for both code paths
-                default_code_path_state = self.motor_system._state
-                new_code_path_state = self.motor_system._state
                 action, close_enough = self.motor_system._policy.move_close_enough(
                     self._observation,
                     sensor_id,
@@ -777,17 +753,9 @@ class InformedEnvironmentDataLoader(EnvironmentDataLoaderPerObject):
                 # Only retrieve new code path if we are not close enough
                 # Otherwise, new code path returns actions to orient to object
                 if not close_enough:
-                    # Invoke the new code path start
-                    default_code_path_state = self.motor_system._state
-                    self.motor_system._state = new_code_path_state
-                    self.motor_system._policy = new_code_path_policy
-                    result = self.motor_system._policy.positioning_call(
+                    result = positioning_procedure.positioning_call(
                         self._observation, self.motor_system._state
                     )
-                    new_code_path_state = self.motor_system._state
-                    self.motor_system._state = default_code_path_state
-                    self.motor_system._policy = default_code_path_policy
-                    # Invoke the new code path end
                     # Assert that the actions are the same start
                     if action is None:
                         if len(result.actions) != 0:
@@ -817,17 +785,9 @@ class InformedEnvironmentDataLoader(EnvironmentDataLoaderPerObject):
                 multiple_objects_present=multiple_objects_present,
                 state=self.motor_system._state,
             )
-            # Invoke the new code path start
-            default_code_path_state = self.motor_system._state
-            self.motor_system._state = new_code_path_state
-            self.motor_system._policy = new_code_path_policy
-            result = self.motor_system._policy.positioning_call(
+            result = positioning_procedure.positioning_call(
                 self._observation, self.motor_system._state
             )
-            new_code_path_state = self.motor_system._state
-            self.motor_system._state = default_code_path_state
-            self.motor_system._policy = default_code_path_policy
-            # Invoke the new code path end
             # Assert that the actions are the same start
             if len(result.actions) != len(actions):
                 breakpoint()
@@ -847,9 +807,6 @@ class InformedEnvironmentDataLoader(EnvironmentDataLoaderPerObject):
                 self.motor_system._state = (
                     MotorSystemState(proprio_state) if proprio_state else None
                 )
-            # Update state for both code paths
-            default_code_path_state = self.motor_system._state
-            new_code_path_state = self.motor_system._state
             on_target_object = self.motor_system._policy.is_on_target_object(
                 self._observation,
                 sensor_id,
