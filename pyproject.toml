@@ -226,6 +226,7 @@ ignore = [
     "ISC001", # ISC001: Implicitly concatenated string literals on one line
     "ISC003", # ISC003: Explicitly concatenated string should be implicitly concatenated
     "N804", # N804: First argument of a class method should be named `cls`
+    "N818", # N818: Exception name {exception} should be named with an Error suffix
     "NPY002", # NPY002: Replace legacy `np.random.normal` call with `np.random.Generator`
     "PD002", # PD002: `inplace=True` should be avoided; it has inconsistent behavior
     "PD901", # PD901: Avoid using the generic variable name `df` for DataFrames
